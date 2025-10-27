@@ -1,205 +1,183 @@
+from flask import Flask, render_template_string, request, redirect, url_for, session
+
+app = Flask(__name__)
+app.secret_key = "secret123"  # Needed for session management
+
+# Sample student accounts (you can add more)
+students = [
+    {"id": 1, "name": "John Doe", "grade": 10, "section": "Zechariah", "username": "john", "password": "1234"},
+    {"id": 2, "name": "Jane Smith", "grade": 11, "section": "Reuben", "username": "jane", "password": "abcd"}
+]
+
+# --------------------------------
+# LOGIN PAGE
+# --------------------------------
+@app.route('/', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form['username']
+        password = request.form['password']
+
+        for s in students:
+            if s["username"] == username and s["password"] == password:
+                session["student"] = s
+                return redirect(url_for('dashboard'))
+        return render_template_string(login_page, error="Invalid username or password")
+
+    return render_template_string(login_page)
+
+# --------------------------------
+# DASHBOARD PAGE
+# --------------------------------
+@app.route('/dashboard')
+def dashboard():
+    if "student" not in session:
+        return redirect(url_for('login'))
+    student = session["student"]
+    return render_template_string(dashboard_page, student=student)
+
+# --------------------------------
+# LOGOUT
+# --------------------------------
+@app.route('/logout')
+def logout():
+    session.pop("student", None)
+    return redirect(url_for('login'))
+
+# --------------------------------
+# HTML Templates (Inline)
+# --------------------------------
+
+login_page = """
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Management System</title>
-  <style>
-    /* ---------- Base Styles ---------- */
-    body {
-      font-family: 'Poppins', sans-serif;
-      background: #f9f9fb;
-      color: #333;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      padding-top: 40px;
-      margin: 0;
-    }
-
-    .container {
-      background: #fff;
-      padding: 40px 60px;
-      border-radius: 20px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-      width: 90%;
-      max-width: 850px;
-      transition: all 0.3s ease;
-    }
-
-    h1 {
-      text-align: center;
-      color: #e91e63;
-      margin-bottom: 30px;
-      font-size: 28px;
-    }
-
-    h2 {
-      color: #444;
-      font-size: 20px;
-      margin-bottom: 10px;
-    }
-
-    /* ---------- Form Section ---------- */
-    .form-section {
-      text-align: center;
-      margin-bottom: 25px;
-    }
-
-    input {
-      padding: 10px;
-      margin: 5px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-      width: 180px;
-    }
-
-    button {
-      background: #e91e63;
-      color: white;
-      border: none;
-      padding: 10px 18px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s;
-      font-size: 14px;
-      margin-top: 5px;
-    }
-
-    button:hover {
-      background: #c2185b;
-    }
-
-    /* ---------- Table ---------- */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 15px;
-    }
-
-    th, td {
-      border-bottom: 1px solid #ddd;
-      text-align: center;
-      padding: 10px;
-      font-size: 15px;
-    }
-
-    th {
-      background: #ffebf1;
-      color: #e91e63;
-    }
-
-    .delete-btn {
-      background: #f44336;
-      border: none;
-      color: white;
-      border-radius: 5px;
-      padding: 6px 12px;
-      cursor: pointer;
-      transition: background 0.3s ease;
-    }
-
-    .delete-btn:hover {
-      background: #d32f2f;
-    }
-
-    hr {
-      margin: 20px 0;
-      border: 0.5px solid #eee;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <title>Student Login</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #fff7fa;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .login-box {
+            background: #fff;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            width: 350px;
+            text-align: center;
+        }
+        h1 {
+            color: #e91e63;
+            margin-bottom: 20px;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+            font-size: 14px;
+        }
+        button {
+            background: #e91e63;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #c2185b;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+        }
+    </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎓 Student Management System</h1>
-
-    <!-- Add Student Form -->
-    <div class="form-section">
-      <h2>Add Student</h2>
-      <input type="text" id="name" placeholder="Name">
-      <input type="number" id="grade" placeholder="Grade">
-      <input type="text" id="section" placeholder="Section">
-      <button onclick="addStudent()">➕ Add Student</button>
+    <div class="login-box">
+        <h1>Student Login</h1>
+        {% if error %}
+        <p class="error">{{ error }}</p>
+        {% endif %}
+        <form method="POST">
+            <input type="text" name="username" placeholder="Username" required><br>
+            <input type="password" name="password" placeholder="Password" required><br>
+            <button type="submit">Login</button>
+        </form>
     </div>
-
-    <hr>
-
-    <!-- Student List -->
-    <div class="list-section">
-      <h2>Student List</h2>
-      <table id="studentTable">
-        <thead>
-          <tr>
-            <th>ID</th>
-            <th>Name</th>
-            <th>Grade</th>
-            <th>Section</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <!-- Students will appear here -->
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <script>
-    // Load all students
-    async function loadStudents() {
-      const res = await fetch('/students');
-      const data = await res.json();
-      const tbody = document.querySelector('#studentTable tbody');
-      tbody.innerHTML = '';
-
-      data.forEach(s => {
-        const row = `
-          <tr>
-            <td>${s.id}</td>
-            <td>${s.name}</td>
-            <td>${s.grade}</td>
-            <td>${s.section}</td>
-            <td>
-              <button class="delete-btn" onclick="deleteStudent(${s.id})">🗑️ Delete</button>
-            </td>
-          </tr>`;
-        tbody.innerHTML += row;
-      });
-    }
-
-    // Add new student
-    async function addStudent() {
-      const name = document.getElementById('name').value.trim();
-      const grade = document.getElementById('grade').value.trim();
-      const section = document.getElementById('section').value.trim();
-
-      if (!name || !grade || !section) {
-        alert("Please fill out all fields!");
-        return;
-      }
-
-      await fetch('/students', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, grade, section })
-      });
-
-      document.getElementById('name').value = '';
-      document.getElementById('grade').value = '';
-      document.getElementById('section').value = '';
-      loadStudents();
-    }
-
-    // Delete student
-    async function deleteStudent(id) {
-      if (!confirm("Are you sure you want to delete this student?")) return;
-      await fetch(`/students/${id}`, { method: 'DELETE' });
-      loadStudents();
-    }
-
-    // Initial load
-    loadStudents();
-  </script>
 </body>
 </html>
+"""
+
+dashboard_page = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #fdf2f7;
+            color: #333;
+            margin: 0;
+            padding: 40px;
+        }
+        h1 {
+            color: #e91e63;
+            text-align: center;
+        }
+        .card {
+            background: #fff;
+            padding: 25px 40px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            width: 400px;
+            margin: 50px auto;
+            text-align: center;
+        }
+        .info {
+            font-size: 16px;
+            line-height: 1.8em;
+        }
+        button {
+            background: #e91e63;
+            color: white;
+            border: none;
+            padding: 10px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 15px;
+            transition: 0.3s;
+        }
+        button:hover {
+            background: #c2185b;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎓 Welcome, {{ student.name }}!</h1>
+    <div class="card">
+        <div class="info">
+            <p><strong>Student ID:</strong> {{ student.id }}</p>
+            <p><strong>Name:</strong> {{ student.name }}</p>
+            <p><strong>Grade:</strong> {{ student.grade }}</p>
+            <p><strong>Section:</strong> {{ student.section }}</p>
+        </div>
+        <a href="{{ url_for('logout') }}"><button>Logout</button></a>
+    </div>
+</body>
+</html>
+"""
+
+if __name__ == '__main__':
+    app.run(debug=True)
