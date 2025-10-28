@@ -1,12 +1,12 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
 
 app = Flask(__name__)
-app.secret_key = "secret123"  # Needed for session management
+app.secret_key = "secret123"
 
-# Sample student accounts (you can add more)
+# Sample student list (acts like a database)
 students = [
-    {"id": 1, "name": "John Doe", "grade": 10, "section": "Zechariah", "username": "john", "password": "1234"},
-    {"id": 2, "name": "Jane Smith", "grade": 11, "section": "Reuben", "username": "jane", "password": "abcd"}
+    {"id": 1, "name": "John Doe", "grade": 10, "section": "Zechariah"},
+    {"id": 2, "name": "Jane Smith", "grade": 11, "section": "Reuben"}
 ]
 
 # --------------------------------
@@ -15,19 +15,43 @@ students = [
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        username = request.form['username']
-        password = request.form['password']
+        name = request.form['name'].strip().lower()
+        grade = request.form['grade']
 
         for s in students:
-            if s["username"] == username and s["password"] == password:
+            if s["name"].lower() == name and str(s["grade"]) == grade:
                 session["student"] = s
                 return redirect(url_for('dashboard'))
-        return render_template_string(login_page, error="Invalid username or password")
+        return render_template_string(login_page, error="Account not found. Please sign up below.")
 
     return render_template_string(login_page)
 
 # --------------------------------
-# DASHBOARD PAGE
+# SIGNUP PAGE
+# --------------------------------
+@app.route('/signup', methods=['GET', 'POST'])
+def signup():
+    if request.method == 'POST':
+        name = request.form['name'].strip()
+        grade = request.form['grade']
+        section = request.form['section'].strip()
+
+        # Check if already exists
+        for s in students:
+            if s["name"].lower() == name.lower() and str(s["grade"]) == grade:
+                return render_template_string(signup_page, error="This student already exists!")
+
+        # Add new student
+        new_id = len(students) + 1
+        new_student = {"id": new_id, "name": name, "grade": int(grade), "section": section}
+        students.append(new_student)
+        session["student"] = new_student
+        return redirect(url_for('dashboard'))
+
+    return render_template_string(signup_page)
+
+# --------------------------------
+# DASHBOARD
 # --------------------------------
 @app.route('/dashboard')
 def dashboard():
@@ -50,9 +74,8 @@ def logout():
 
 login_page = """
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>Student Login</title>
     <style>
         body {
@@ -74,7 +97,6 @@ login_page = """
         }
         h1 {
             color: #e91e63;
-            margin-bottom: 20px;
         }
         input {
             width: 90%;
@@ -82,7 +104,6 @@ login_page = """
             margin: 10px 0;
             border-radius: 10px;
             border: 1px solid #ccc;
-            font-size: 14px;
         }
         button {
             background: #e91e63;
@@ -91,13 +112,16 @@ login_page = """
             padding: 12px 25px;
             border-radius: 25px;
             cursor: pointer;
-            transition: 0.3s;
         }
         button:hover {
             background: #c2185b;
         }
         .error {
             color: red;
+        }
+        a {
+            color: #e91e63;
+            text-decoration: none;
             font-size: 14px;
         }
     </style>
@@ -105,14 +129,82 @@ login_page = """
 <body>
     <div class="login-box">
         <h1>Student Login</h1>
-        {% if error %}
-        <p class="error">{{ error }}</p>
-        {% endif %}
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
         <form method="POST">
-            <input type="text" name="username" placeholder="Username" required><br>
-            <input type="password" name="password" placeholder="Password" required><br>
+            <input type="text" name="name" placeholder="Full Name" required><br>
+            <input type="number" name="grade" placeholder="Grade Level (e.g. 10)" required><br>
             <button type="submit">Login</button>
         </form>
+        <p>Don't have an account? <a href="{{ url_for('signup') }}">Sign Up</a></p>
+    </div>
+</body>
+</html>
+"""
+
+signup_page = """
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Student Sign Up</title>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #fdf2f7;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+        }
+        .signup-box {
+            background: #fff;
+            padding: 40px 50px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            width: 350px;
+            text-align: center;
+        }
+        h1 {
+            color: #e91e63;
+        }
+        input {
+            width: 90%;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background: #e91e63;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 25px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #c2185b;
+        }
+        .error {
+            color: red;
+        }
+        a {
+            color: #e91e63;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="signup-box">
+        <h1>Sign Up</h1>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="POST">
+            <input type="text" name="name" placeholder="Full Name" required><br>
+            <input type="number" name="grade" placeholder="Grade Level" required><br>
+            <input type="text" name="section" placeholder="Section" required><br>
+            <button type="submit">Create Account</button>
+        </form>
+        <p>Already have an account? <a href="{{ url_for('login') }}">Login</a></p>
     </div>
 </body>
 </html>
@@ -120,34 +212,28 @@ login_page = """
 
 dashboard_page = """
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>Dashboard</title>
     <style>
         body {
             font-family: 'Poppins', sans-serif;
             background: #fdf2f7;
-            color: #333;
-            margin: 0;
-            padding: 40px;
-        }
-        h1 {
-            color: #e91e63;
             text-align: center;
+            padding: 50px;
         }
         .card {
             background: #fff;
-            padding: 25px 40px;
+            padding: 30px 50px;
             border-radius: 20px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
-            width: 400px;
-            margin: 50px auto;
-            text-align: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.1);
+            display: inline-block;
         }
-        .info {
+        h1 {
+            color: #e91e63;
+        }
+        p {
             font-size: 16px;
-            line-height: 1.8em;
         }
         button {
             background: #e91e63;
@@ -156,8 +242,6 @@ dashboard_page = """
             padding: 10px 25px;
             border-radius: 25px;
             cursor: pointer;
-            margin-top: 15px;
-            transition: 0.3s;
         }
         button:hover {
             background: #c2185b;
@@ -167,12 +251,10 @@ dashboard_page = """
 <body>
     <h1>🎓 Welcome, {{ student.name }}!</h1>
     <div class="card">
-        <div class="info">
-            <p><strong>Student ID:</strong> {{ student.id }}</p>
-            <p><strong>Name:</strong> {{ student.name }}</p>
-            <p><strong>Grade:</strong> {{ student.grade }}</p>
-            <p><strong>Section:</strong> {{ student.section }}</p>
-        </div>
+        <p><strong>ID:</strong> {{ student.id }}</p>
+        <p><strong>Name:</strong> {{ student.name }}</p>
+        <p><strong>Grade:</strong> {{ student.grade }}</p>
+        <p><strong>Section:</strong> {{ student.section }}</p>
         <a href="{{ url_for('logout') }}"><button>Logout</button></a>
     </div>
 </body>
@@ -181,3 +263,4 @@ dashboard_page = """
 
 if __name__ == '__main__':
     app.run(debug=True)
+            
