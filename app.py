@@ -1,4 +1,5 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
+import random
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
@@ -18,9 +19,9 @@ login_page = """
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: linear-gradient(-45deg, #ffe6f0, #ffd6e0, #ffe6f0, #ffd6e0);
+            background: linear-gradient(-45deg, #ffd1dc, #ffe6f0, #ffd6e0, #ffcce0);
             background-size: 400% 400%;
-            animation: gradient 8s ease infinite;
+            animation: gradient 10s ease infinite;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -30,28 +31,28 @@ login_page = """
         }
 
         @keyframes gradient {
-            0% {background-position: 0% 50%;}
-            50% {background-position: 100% 50%;}
-            100% {background-position: 0% 50%;}
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
 
         .container {
             background: white;
             padding: 40px;
-            border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            width: 400px;
+            border-radius: 25px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+            width: 420px;
             text-align: center;
             transition: background 0.5s, color 0.5s;
         }
 
         h2 {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             background: linear-gradient(90deg, #ff0057, #ff6ec7);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 700;
-            font-size: 26px;
+            font-size: 28px;
             animation: colorShift 3s infinite alternate;
         }
 
@@ -62,11 +63,11 @@ login_page = """
 
         input {
             width: 90%;
-            padding: 10px;
+            padding: 12px;
             margin: 8px 0;
-            border-radius: 10px;
+            border-radius: 12px;
             border: 1px solid #ccc;
-            font-size: 14px;
+            font-size: 15px;
             text-align: center;
         }
 
@@ -78,34 +79,19 @@ login_page = """
             border-radius: 25px;
             cursor: pointer;
             font-weight: bold;
-            font-size: 15px;
+            font-size: 16px;
+            margin-top: 10px;
             transition: transform 0.3s, box-shadow 0.3s;
             animation: glow 2s infinite alternate;
         }
 
         @keyframes glow {
             from { box-shadow: 0 0 10px #ff6ec7; }
-            to { box-shadow: 0 0 20px #ff0057; }
+            to { box-shadow: 0 0 25px #ff0057; }
         }
 
         button:hover {
             transform: scale(1.05);
-        }
-
-        .dark-mode {
-            background: linear-gradient(-45deg, #1a1a1a, #2b2b2b, #1a1a1a, #2b2b2b);
-            color: white;
-        }
-
-        .dark-mode .container {
-            background: #2e2e2e;
-            color: white;
-        }
-
-        .dark-mode input {
-            background: #444;
-            color: white;
-            border: 1px solid #666;
         }
 
         .theme-toggle {
@@ -122,16 +108,42 @@ login_page = """
             animation: colorShift 3s infinite alternate;
         }
 
-        .recommendation {
-            margin-top: 20px;
-            font-size: 13px;
-            color: #888;
+        .recommendation-box {
+            background: linear-gradient(90deg, #fff0f5, #ffe6f0);
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 25px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            animation: fadein 1.2s ease;
         }
 
-        .dark-mode .recommendation {
-            color: #ccc;
+        @keyframes fadein {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
         }
 
+        .dark-mode {
+            background: linear-gradient(-45deg, #121212, #1f1f1f, #2a2a2a, #141414);
+            color: white;
+        }
+
+        .dark-mode .container {
+            background: #2e2e2e;
+            color: white;
+        }
+
+        .dark-mode input {
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+        }
+
+        .dark-mode .recommendation-box {
+            background: #333;
+            color: #eee;
+        }
     </style>
 </head>
 <body>
@@ -143,13 +155,31 @@ login_page = """
             <input type="text" name="grade" placeholder="Grade (or 0000 for Admin)" required><br>
             <button type="submit">Login</button>
         </form>
-        <div class="recommendation">
-            💡 Recommendation: Use "Admin" and "0000" for admin access.<br>
-            Students can use their name and grade to log in.
+
+        <div class="recommendation-box" id="recommendationBox">
+            💡 <b>Loading recommendations...</b>
         </div>
     </div>
 
     <script>
+        const tips = [
+            "📘 Tip: Always double-check your grade before logging in.",
+            "🌟 Reminder: Admin uses 'Admin' and '0000' to access the dashboard.",
+            "🎓 Stay motivated! Every login is a step closer to success.",
+            "📅 Keep your section updated for better record organization.",
+            "💖 Switch to dark mode for a more relaxed viewing experience.",
+            "⚡ Fun fact: You can add unlimited students — it grows with you!"
+        ];
+
+        function showTip() {
+            const box = document.getElementById('recommendationBox');
+            const tip = tips[Math.floor(Math.random() * tips.length)];
+            box.innerHTML = tip;
+        }
+
+        setInterval(showTip, 4000);
+        showTip();
+
         function toggleTheme() {
             document.body.classList.toggle("dark-mode");
         }
@@ -178,9 +208,9 @@ student_page = """
             display: inline-block;
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
-        h2 {
-            color: #ff0057;
-        }
+        h2 { color: #ff0057; }
+        p { color: #555; }
+        a { color: #ff0057; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -221,9 +251,7 @@ admin_page = """
             background: #ff0057;
             color: white;
         }
-        h2 {
-            color: #ff0057;
-        }
+        h2 { color: #ff0057; }
     </style>
 </head>
 <body>
