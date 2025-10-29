@@ -3,34 +3,40 @@ from flask import Flask, render_template_string, request, redirect, url_for, ses
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# Sample student "database"
-students = [
-    {"id": 1, "name": "John Doe", "grade": 10, "section": "Zechariah"},
-    {"id": 2, "name": "Jane Smith", "grade": 11, "section": "Reuben"}
-]
+# Start with an empty student list
+students = []
 
 # --------------------------------
-# LOGIN PAGE
+# LOGIN PAGE - Anyone can log in
 # --------------------------------
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        name = request.form['name'].strip().lower()
-        grade = request.form['grade']
+        name = request.form['name'].strip()
+        grade = request.form['grade'].strip()
 
         # Admin login
-        if name == "admin" and grade == "0000":
+        if name.lower() == "admin" and grade == "0000":
+            session.clear()
             session["admin"] = True
             return redirect(url_for('admin_dashboard'))
 
-        # Student login
-        for s in students:
-            if s["name"].lower() == name and str(s["grade"]) == grade:
-                session["student"] = s
-                return redirect(url_for('student_dashboard'))
-        return render_template_string(login_page, error="Invalid credentials.")
+        # Check if student already exists
+        student = next((s for s in students if s["name"].lower() == name.lower()), None)
+
+        # If not found, register automatically
+        if not student:
+            new_id = len(students) + 1
+            student = {"id": new_id, "name": name, "grade": grade, "section": "Unassigned"}
+            students.append(student)
+
+        # Log in as student
+        session.clear()
+        session["student"] = student
+        return redirect(url_for('student_dashboard'))
 
     return render_template_string(login_page)
+
 
 # --------------------------------
 # STUDENT DASHBOARD
@@ -42,6 +48,7 @@ def student_dashboard():
     student = session["student"]
     return render_template_string(student_dashboard_page, student=student)
 
+
 # --------------------------------
 # ADMIN DASHBOARD
 # --------------------------------
@@ -51,7 +58,8 @@ def admin_dashboard():
         return redirect(url_for('login'))
     return render_template_string(admin_page, students=students)
 
-# Add new student
+
+# Add student manually (Admin)
 @app.route('/admin/add', methods=['POST'])
 def add_student():
     if "admin" not in session:
@@ -60,8 +68,9 @@ def add_student():
     grade = request.form['grade']
     section = request.form['section']
     new_id = len(students) + 1
-    students.append({"id": new_id, "name": name, "grade": int(grade), "section": section})
+    students.append({"id": new_id, "name": name, "grade": grade, "section": section})
     return redirect(url_for('admin_dashboard'))
+
 
 # Edit student
 @app.route('/admin/edit/<int:id>', methods=['GET', 'POST'])
@@ -74,11 +83,12 @@ def edit_student(id):
 
     if request.method == 'POST':
         student["name"] = request.form['name']
-        student["grade"] = int(request.form['grade'])
+        student["grade"] = request.form['grade']
         student["section"] = request.form['section']
         return redirect(url_for('admin_dashboard'))
 
     return render_template_string(edit_page, student=student)
+
 
 # Delete student
 @app.route('/admin/delete/<int:id>')
@@ -89,13 +99,13 @@ def delete_student(id):
     students = [s for s in students if s["id"] != id]
     return redirect(url_for('admin_dashboard'))
 
-# --------------------------------
-# LOGOUT
-# --------------------------------
+
+# Logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
+
 
 # --------------------------------
 # HTML Templates
@@ -140,16 +150,14 @@ login_page = """
             cursor: pointer;
         }
         button:hover { background: #c2185b; }
-        .error { color: red; }
     </style>
 </head>
 <body>
     <div class="box">
         <h1>Login</h1>
-        {% if error %}<p class="error">{{ error }}</p>{% endif %}
         <form method="POST">
             <input type="text" name="name" placeholder="Name (Admin or Student)" required><br>
-            <input type="number" name="grade" placeholder="Grade (or 0000 for Admin)" required><br>
+            <input type="text" name="grade" placeholder="Grade (or 0000 for Admin)" required><br>
             <button type="submit">Login</button>
         </form>
     </div>
@@ -268,7 +276,7 @@ admin_page = """
     <form method="POST" action="{{ url_for('add_student') }}">
         <h3>Add New Student</h3>
         <input type="text" name="name" placeholder="Name" required>
-        <input type="number" name="grade" placeholder="Grade" required>
+        <input type="text" name="grade" placeholder="Grade" required>
         <input type="text" name="section" placeholder="Section" required>
         <button type="submit">Add</button>
     </form>
@@ -323,7 +331,7 @@ edit_page = """
         <h1>Edit Student</h1>
         <form method="POST">
             <input type="text" name="name" value="{{ student.name }}" required><br>
-            <input type="number" name="grade" value="{{ student.grade }}" required><br>
+            <input type="text" name="grade" value="{{ student.grade }}" required><br>
             <input type="text" name="section" value="{{ student.section }}" required><br>
             <button type="submit">Save Changes</button>
         </form>
