@@ -34,11 +34,10 @@ def save_logs():
 students = load_students()
 login_logs = load_logs()
 
-# Possible random sections
 sections = ["Levi", "Reuben", "Zechariah", "Judah", "Benjamin", "Asher", "Dan", "Simeon"]
 
 # --------------------------------
-# LOGIN PAGE - Anyone can log in
+# LOGIN PAGE
 # --------------------------------
 @app.route('/', methods=['GET', 'POST'])
 def login():
@@ -51,15 +50,13 @@ def login():
         if name.lower() == "admin" and grade == "0000":
             session.clear()
             session["admin"] = True
-            # Record admin login
             login_logs.append({"name": "Admin", "role": "Admin", "time": timestamp})
             save_logs()
             return redirect(url_for('admin_dashboard'))
 
-        # Check if student already exists
+        # Check if student exists
         student = next((s for s in students if s["name"].lower() == name.lower()), None)
 
-        # If not found, register automatically
         if not student:
             new_id = len(students) + 1
             random_section = random.choice(sections)
@@ -67,14 +64,10 @@ def login():
             students.append(student)
             save_students()
 
-        # Log in as student
         session.clear()
         session["student"] = student
-
-        # Record student login
         login_logs.append({"name": name, "role": "Student", "time": timestamp})
         save_logs()
-
         return redirect(url_for('student_dashboard'))
 
     return render_template_string(login_page)
@@ -100,7 +93,6 @@ def admin_dashboard():
     now = datetime.now().strftime("%B %d, %Y %I:%M %p")
     return render_template_string(admin_page, students=students, logs=login_logs, now=now)
 
-# Add student manually (Admin)
 @app.route('/admin/add', methods=['POST'])
 def add_student():
     if "admin" not in session:
@@ -113,7 +105,6 @@ def add_student():
     save_students()
     return redirect(url_for('admin_dashboard'))
 
-# Edit student
 @app.route('/admin/edit/<int:id>', methods=['GET', 'POST'])
 def edit_student(id):
     if "admin" not in session:
@@ -131,7 +122,6 @@ def edit_student(id):
 
     return render_template_string(edit_page, student=student)
 
-# Delete student
 @app.route('/admin/delete/<int:id>')
 def delete_student(id):
     if "admin" not in session:
@@ -141,7 +131,6 @@ def delete_student(id):
     save_students()
     return redirect(url_for('admin_dashboard'))
 
-# Logout
 @app.route('/logout')
 def logout():
     session.clear()
@@ -214,21 +203,22 @@ student_dashboard_page = """
         body {
             font-family: 'Poppins', sans-serif;
             background: var(--bg, #fdf2f7);
-            color: var(--text, black);
+            color: var(--text, #000);
             text-align: center;
             padding: 50px;
             transition: background 0.5s, color 0.5s;
         }
         .card {
-            background: #fff;
+            background: var(--card, #fff);
+            color: var(--text, #000);
             padding: 30px 50px;
             border-radius: 20px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             display: inline-block;
         }
-        h1 { color: #e91e63; }
+        h1 { color: var(--accent, #e91e63); }
         button {
-            background: #e91e63;
+            background: var(--accent, #e91e63);
             color: white;
             border: none;
             padding: 10px 25px;
@@ -255,14 +245,16 @@ student_dashboard_page = """
         <p><strong>ID:</strong> {{ student.id }}</p>
         <p><strong>Grade:</strong> {{ student.grade }}</p>
         <p><strong>Section:</strong> {{ student.section }}</p>
-        <p>✨ Tip: Keep your grades up and check back for updates!</p>
+        <p>✨ Keep learning and doing great!</p>
         <a href="{{ url_for('logout') }}"><button>Logout</button></a>
     </div>
     <script>
         function toggleDark() {
             const isDark = document.body.style.getPropertyValue('--bg') === '#111';
             document.body.style.setProperty('--bg', isDark ? '#fdf2f7' : '#111');
-            document.body.style.setProperty('--text', isDark ? 'black' : 'white');
+            document.body.style.setProperty('--text', isDark ? '#000' : '#fff');
+            document.body.style.setProperty('--card', isDark ? '#fff' : '#222');
+            document.body.style.setProperty('--accent', isDark ? '#e91e63' : '#ff80ab');
         }
     </script>
 </body>
@@ -278,16 +270,17 @@ admin_page = """
         body {
             font-family: 'Poppins', sans-serif;
             background: var(--bg, #fff7fa);
-            color: var(--text, black);
+            color: var(--text, #000);
             padding: 30px;
             transition: background 0.5s, color 0.5s;
         }
-        h1 { color: #e91e63; text-align: center; }
+        h1 { color: var(--accent, #e91e63); text-align: center; }
         table {
-            width: 80%;
+            width: 85%;
             margin: auto;
             border-collapse: collapse;
-            background: #fff;
+            background: var(--card, #fff);
+            color: var(--text, #000);
             border-radius: 15px;
             overflow: hidden;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
@@ -297,18 +290,14 @@ admin_page = """
             padding: 12px;
             text-align: center;
         }
-        th { background: #f8c1d2; }
+        th { background: var(--accent-light, #f8c1d2); color: var(--text, #000); }
         a, button {
-            background: #e91e63;
+            background: var(--accent, #e91e63);
             color: white;
             border: none;
             padding: 6px 15px;
             border-radius: 15px;
             text-decoration: none;
-        }
-        form {
-            text-align: center;
-            margin-top: 30px;
         }
         input {
             padding: 8px;
@@ -328,7 +317,7 @@ admin_page = """
         }
         h2 {
             text-align: center;
-            color: #c2185b;
+            color: var(--accent, #c2185b);
             margin-top: 40px;
         }
     </style>
@@ -353,7 +342,7 @@ admin_page = """
         {% endfor %}
     </table>
 
-    <form method="POST" action="{{ url_for('add_student') }}">
+    <form method="POST" action="{{ url_for('add_student') }}" style="text-align:center;">
         <h3>Add New Student</h3>
         <input type="text" name="name" placeholder="Name" required>
         <input type="text" name="grade" placeholder="Grade" required>
@@ -381,7 +370,10 @@ admin_page = """
         function toggleDark() {
             const isDark = document.body.style.getPropertyValue('--bg') === '#111';
             document.body.style.setProperty('--bg', isDark ? '#fff7fa' : '#111');
-            document.body.style.setProperty('--text', isDark ? 'black' : 'white');
+            document.body.style.setProperty('--text', isDark ? '#000' : '#fff');
+            document.body.style.setProperty('--card', isDark ? '#fff' : '#222');
+            document.body.style.setProperty('--accent', isDark ? '#e91e63' : '#ff80ab');
+            document.body.style.setProperty('--accent-light', isDark ? '#f8c1d2' : '#444');
         }
     </script>
 </body>
