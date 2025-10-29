@@ -74,16 +74,17 @@ login_page = """
             background: linear-gradient(90deg, #ff0057, #ff6ec7);
             border: none;
             color: white;
-            padding: 10px 30px;
-            border-radius: 20px;
+            padding: 12px 35px;
+            border-radius: 25px;
             cursor: pointer;
             font-weight: bold;
             transition: 0.3s;
             animation: colorShift 3s infinite alternate;
+            margin-top: 15px;
         }
 
         button:hover {
-            transform: scale(1.05);
+            transform: scale(1.07);
         }
 
         .dark-mode {
@@ -99,7 +100,11 @@ login_page = """
         .dark-mode input {
             background: #444;
             color: white;
-            border: 1px solid #666;
+            border: 1px solid #777;
+        }
+
+        .dark-mode button {
+            color: white;
         }
 
         .theme-toggle {
@@ -146,10 +151,19 @@ student_page = """
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: #ffe6f0;
+            background: linear-gradient(-45deg, #ffe6f0, #ffd6e0, #ffe6f0, #ffd6e0);
+            background-size: 400% 400%;
+            animation: gradient 8s ease infinite;
             text-align: center;
             padding: 50px;
         }
+
+        @keyframes gradient {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
         .container {
             background: white;
             padding: 30px;
@@ -157,8 +171,35 @@ student_page = """
             display: inline-block;
             box-shadow: 0 8px 20px rgba(0,0,0,0.1);
         }
+
         h2 {
             color: #ff0057;
+        }
+
+        .recommendation {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #ffe6f0;
+            color: #333;
+            font-size: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            background: linear-gradient(90deg, #ff0057, #ff6ec7);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 20px;
+            animation: colorShift 3s infinite alternate;
+        }
+
+        @keyframes colorShift {
+            0% { background: linear-gradient(90deg, #ff0057, #ff6ec7); }
+            100% { background: linear-gradient(90deg, #ff6ec7, #ff0057); }
         }
     </style>
 </head>
@@ -167,6 +208,13 @@ student_page = """
         <h2>Welcome, {{ student.name }}!</h2>
         <p>Grade: {{ student.grade }}</p>
         <p>Section: {{ student.section }}</p>
+        <div class="recommendation">
+            {% if student.grade >= 10 %}
+                <b>Recommendation:</b> Great job! Prepare for your senior high transition. Review key topics and explore your future strand choices.
+            {% else %}
+                <b>Recommendation:</b> Keep up the hard work! Focus on building strong fundamentals in Math and English.
+            {% endif %}
+        </div>
         <a href="/">Logout</a>
     </div>
 </body>
@@ -182,26 +230,56 @@ admin_page = """
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: #fff0f5;
+            background: linear-gradient(-45deg, #fff0f5, #ffd6e0, #fff0f5, #ffd6e0);
+            background-size: 400% 400%;
+            animation: gradient 8s ease infinite;
             text-align: center;
             padding: 50px;
         }
+
+        @keyframes gradient {
+            0% {background-position: 0% 50%;}
+            50% {background-position: 100% 50%;}
+            100% {background-position: 0% 50%;}
+        }
+
         table {
             margin: auto;
             border-collapse: collapse;
             width: 70%;
             background: white;
+            border-radius: 10px;
+            overflow: hidden;
         }
+
         th, td {
             padding: 10px;
             border: 1px solid #ffb6c1;
         }
+
         th {
             background: #ff0057;
             color: white;
         }
+
         h2 {
             color: #ff0057;
+        }
+
+        a {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            background: linear-gradient(90deg, #ff0057, #ff6ec7);
+            color: white;
+            padding: 10px 25px;
+            border-radius: 20px;
+            animation: colorShift 3s infinite alternate;
+        }
+
+        @keyframes colorShift {
+            0% { background: linear-gradient(90deg, #ff0057, #ff6ec7); }
+            100% { background: linear-gradient(90deg, #ff6ec7, #ff0057); }
         }
     </style>
 </head>
@@ -218,7 +296,6 @@ admin_page = """
         </tr>
         {% endfor %}
     </table>
-    <br>
     <a href="/">Logout</a>
 </body>
 </html>
