@@ -1,10 +1,29 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
+import random, json, os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# Start with an empty student list
-students = []
+# -------------------------------
+# Load/Save Students from JSON
+# -------------------------------
+DATA_FILE = "students.json"
+
+def load_students():
+    if os.path.exists(DATA_FILE):
+        with open(DATA_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_students():
+    with open(DATA_FILE, "w") as f:
+        json.dump(students, f, indent=4)
+
+students = load_students()
+
+# Possible random sections
+sections = ["Levi", "Reuben", "Zechariah", "Judah", "Benjamin", "Asher", "Dan", "Simeon"]
 
 # --------------------------------
 # LOGIN PAGE - Anyone can log in
@@ -27,8 +46,10 @@ def login():
         # If not found, register automatically
         if not student:
             new_id = len(students) + 1
-            student = {"id": new_id, "name": name, "grade": grade, "section": "Unassigned"}
+            random_section = random.choice(sections)
+            student = {"id": new_id, "name": name, "grade": grade, "section": random_section}
             students.append(student)
+            save_students()
 
         # Log in as student
         session.clear()
@@ -36,7 +57,6 @@ def login():
         return redirect(url_for('student_dashboard'))
 
     return render_template_string(login_page)
-
 
 # --------------------------------
 # STUDENT DASHBOARD
@@ -46,8 +66,8 @@ def student_dashboard():
     if "student" not in session:
         return redirect(url_for('login'))
     student = session["student"]
-    return render_template_string(student_dashboard_page, student=student)
-
+    now = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    return render_template_string(student_dashboard_page, student=student, now=now)
 
 # --------------------------------
 # ADMIN DASHBOARD
@@ -56,8 +76,8 @@ def student_dashboard():
 def admin_dashboard():
     if "admin" not in session:
         return redirect(url_for('login'))
-    return render_template_string(admin_page, students=students)
-
+    now = datetime.now().strftime("%B %d, %Y %I:%M %p")
+    return render_template_string(admin_page, students=students, now=now)
 
 # Add student manually (Admin)
 @app.route('/admin/add', methods=['POST'])
@@ -69,8 +89,8 @@ def add_student():
     section = request.form['section']
     new_id = len(students) + 1
     students.append({"id": new_id, "name": name, "grade": grade, "section": section})
+    save_students()
     return redirect(url_for('admin_dashboard'))
-
 
 # Edit student
 @app.route('/admin/edit/<int:id>', methods=['GET', 'POST'])
@@ -85,10 +105,10 @@ def edit_student(id):
         student["name"] = request.form['name']
         student["grade"] = request.form['grade']
         student["section"] = request.form['section']
+        save_students()
         return redirect(url_for('admin_dashboard'))
 
     return render_template_string(edit_page, student=student)
-
 
 # Delete student
 @app.route('/admin/delete/<int:id>')
@@ -97,15 +117,14 @@ def delete_student(id):
         return redirect(url_for('login'))
     global students
     students = [s for s in students if s["id"] != id]
+    save_students()
     return redirect(url_for('admin_dashboard'))
-
 
 # Logout
 @app.route('/logout')
 def logout():
     session.clear()
     return redirect(url_for('login'))
-
 
 # --------------------------------
 # HTML Templates
@@ -119,7 +138,7 @@ login_page = """
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: #fff7fa;
+            background: linear-gradient(135deg, #ffe0eb, #fff7fa);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -173,9 +192,11 @@ student_dashboard_page = """
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: #fdf2f7;
+            background: var(--bg, #fdf2f7);
+            color: var(--text, black);
             text-align: center;
             padding: 50px;
+            transition: background 0.5s, color 0.5s;
         }
         .card {
             background: #fff;
@@ -193,17 +214,36 @@ student_dashboard_page = """
             border-radius: 25px;
             cursor: pointer;
         }
+        .dark-toggle {
+            position: fixed;
+            top: 20px; right: 20px;
+            background: #555;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <button class="dark-toggle" onclick="toggleDark()">🌙</button>
     <h1>🎓 Welcome, {{ student.name }}!</h1>
+    <p>{{ now }}</p>
     <div class="card">
         <p><strong>ID:</strong> {{ student.id }}</p>
-        <p><strong>Name:</strong> {{ student.name }}</p>
         <p><strong>Grade:</strong> {{ student.grade }}</p>
         <p><strong>Section:</strong> {{ student.section }}</p>
+        <p>✨ Tip: Keep your grades up and check back for updates!</p>
         <a href="{{ url_for('logout') }}"><button>Logout</button></a>
     </div>
+    <script>
+        function toggleDark() {
+            const isDark = document.body.style.getPropertyValue('--bg') === '#111';
+            document.body.style.setProperty('--bg', isDark ? '#fdf2f7' : '#111');
+            document.body.style.setProperty('--text', isDark ? 'black' : 'white');
+        }
+    </script>
 </body>
 </html>
 """
@@ -216,8 +256,10 @@ admin_page = """
     <style>
         body {
             font-family: 'Poppins', sans-serif;
-            background: #fff7fa;
+            background: var(--bg, #fff7fa);
+            color: var(--text, black);
             padding: 30px;
+            transition: background 0.5s, color 0.5s;
         }
         h1 { color: #e91e63; text-align: center; }
         table {
@@ -243,7 +285,6 @@ admin_page = """
             border-radius: 15px;
             text-decoration: none;
         }
-        a:hover, button:hover { background: #c2185b; }
         form {
             text-align: center;
             margin-top: 30px;
@@ -254,10 +295,22 @@ admin_page = """
             border-radius: 10px;
             border: 1px solid #ccc;
         }
+        .dark-toggle {
+            position: fixed;
+            top: 20px; right: 20px;
+            background: #555;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
+    <button class="dark-toggle" onclick="toggleDark()">🌙</button>
     <h1>👩‍🏫 Admin Dashboard</h1>
+    <p style="text-align:center;">{{ now }}</p>
     <table>
         <tr><th>ID</th><th>Name</th><th>Grade</th><th>Section</th><th>Actions</th></tr>
         {% for s in students %}
@@ -283,6 +336,13 @@ admin_page = """
     <div style="text-align:center; margin-top:20px;">
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
+    <script>
+        function toggleDark() {
+            const isDark = document.body.style.getPropertyValue('--bg') === '#111';
+            document.body.style.setProperty('--bg', isDark ? '#fff7fa' : '#111');
+            document.body.style.setProperty('--text', isDark ? 'black' : 'white');
+        }
+    </script>
 </body>
 </html>
 """
