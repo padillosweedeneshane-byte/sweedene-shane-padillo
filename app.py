@@ -1,13 +1,24 @@
 from flask import Flask, render_template_string, request, redirect, url_for, session
-import random
 
 app = Flask(__name__)
 app.secret_key = "secretkey"
 
 students = [
-    {"id": 1, "name": "John Doe", "grade": 10, "section": "Zechariah"},
-    {"id": 2, "name": "Jane Smith", "grade": 9, "section": "Levi"}
+    {"id": 1, "name": "John Doe", "grade": 10, "section": "Levi"},
+    {"id": 2, "name": "Jane Smith", "grade": 12, "section": "Zechariah"}
 ]
+
+def assign_section(grade):
+    """Automatically assign a section based on grade level."""
+    grade = int(grade)
+    if 7 <= grade <= 8:
+        return "Genesis"
+    elif 9 <= grade <= 10:
+        return "Levi"
+    elif 11 <= grade <= 12:
+        return "Zechariah"
+    else:
+        return "Faith"
 
 login_page = """
 <!DOCTYPE html>
@@ -29,13 +40,11 @@ login_page = """
             margin: 0;
             transition: background 0.5s, color 0.5s;
         }
-
         @keyframes gradient {
             0% { background-position: 0% 50%; }
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-
         .container {
             background: white;
             padding: 40px;
@@ -43,9 +52,7 @@ login_page = """
             box-shadow: 0 10px 40px rgba(0,0,0,0.15);
             width: 420px;
             text-align: center;
-            transition: background 0.5s, color 0.5s;
         }
-
         h2 {
             margin-bottom: 15px;
             background: linear-gradient(90deg, #ff0057, #ff6ec7);
@@ -55,12 +62,10 @@ login_page = """
             font-size: 28px;
             animation: colorShift 3s infinite alternate;
         }
-
         @keyframes colorShift {
             0% { background: linear-gradient(90deg, #ff0057, #ff6ec7); -webkit-background-clip: text; }
             100% { background: linear-gradient(90deg, #ff6ec7, #ff0057); -webkit-background-clip: text; }
         }
-
         input {
             width: 90%;
             padding: 12px;
@@ -70,7 +75,6 @@ login_page = """
             font-size: 15px;
             text-align: center;
         }
-
         button {
             background: linear-gradient(90deg, #ff0057, #ff6ec7);
             border: none;
@@ -84,30 +88,11 @@ login_page = """
             transition: transform 0.3s, box-shadow 0.3s;
             animation: glow 2s infinite alternate;
         }
-
         @keyframes glow {
             from { box-shadow: 0 0 10px #ff6ec7; }
             to { box-shadow: 0 0 25px #ff0057; }
         }
-
-        button:hover {
-            transform: scale(1.05);
-        }
-
-        .theme-toggle {
-            position: fixed;
-            top: 20px;
-            right: 30px;
-            background: linear-gradient(90deg, #ff0057, #ff6ec7);
-            border: none;
-            color: white;
-            padding: 10px 20px;
-            border-radius: 20px;
-            cursor: pointer;
-            font-weight: bold;
-            animation: colorShift 3s infinite alternate;
-        }
-
+        button:hover { transform: scale(1.05); }
         .recommendation-box {
             background: linear-gradient(90deg, #fff0f5, #ffe6f0);
             border-radius: 15px;
@@ -118,36 +103,13 @@ login_page = """
             box-shadow: 0 4px 20px rgba(0,0,0,0.1);
             animation: fadein 1.2s ease;
         }
-
         @keyframes fadein {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
-
-        .dark-mode {
-            background: linear-gradient(-45deg, #121212, #1f1f1f, #2a2a2a, #141414);
-            color: white;
-        }
-
-        .dark-mode .container {
-            background: #2e2e2e;
-            color: white;
-        }
-
-        .dark-mode input {
-            background: #444;
-            color: white;
-            border: 1px solid #666;
-        }
-
-        .dark-mode .recommendation-box {
-            background: #333;
-            color: #eee;
-        }
     </style>
 </head>
 <body>
-    <button class="theme-toggle" onclick="toggleTheme()">🌗 Toggle Theme</button>
     <div class="container">
         <h2>Student Management System</h2>
         <form method="POST">
@@ -155,34 +117,24 @@ login_page = """
             <input type="text" name="grade" placeholder="Grade (or 0000 for Admin)" required><br>
             <button type="submit">Login</button>
         </form>
-
-        <div class="recommendation-box" id="recommendationBox">
-            💡 <b>Loading recommendations...</b>
-        </div>
+        <div class="recommendation-box" id="recommendationBox">💡 Loading recommendations...</div>
     </div>
-
     <script>
         const tips = [
             "📘 Tip: Always double-check your grade before logging in.",
-            "🌟 Reminder: Admin uses 'Admin' and '0000' to access the dashboard.",
+            "🌟 Admin uses 'Admin' and '0000' to access the dashboard.",
             "🎓 Stay motivated! Every login is a step closer to success.",
-            "📅 Keep your section updated for better record organization.",
-            "💖 Switch to dark mode for a more relaxed viewing experience.",
-            "⚡ Fun fact: You can add unlimited students — it grows with you!"
+            "📅 Keep your section updated for better organization.",
+            "💖 Switch to dark mode for a more relaxed view.",
+            "⚡ Fun fact: You can add unlimited students!"
         ];
-
         function showTip() {
             const box = document.getElementById('recommendationBox');
             const tip = tips[Math.floor(Math.random() * tips.length)];
             box.innerHTML = tip;
         }
-
         setInterval(showTip, 4000);
         showTip();
-
-        function toggleTheme() {
-            document.body.classList.toggle("dark-mode");
-        }
     </script>
 </body>
 </html>
@@ -258,7 +210,7 @@ admin_page = """
     <h2>Admin Dashboard</h2>
     <table>
         <tr><th>ID</th><th>Name</th><th>Grade</th><th>Section</th></tr>
-        {% for s in students if s.section != "Unassigned" %}
+        {% for s in students %}
         <tr>
             <td>{{ s.id }}</td>
             <td>{{ s.name }}</td>
@@ -284,10 +236,12 @@ def login():
             session["admin"] = True
             return redirect(url_for('admin_dashboard'))
 
+        # Auto-assign section when new student logs in
         student = next((s for s in students if s["name"].lower() == name.lower() and str(s["grade"]) == grade), None)
         if not student:
             new_id = len(students) + 1
-            student = {"id": new_id, "name": name, "grade": int(grade), "section": "Unassigned"}
+            section = assign_section(grade)
+            student = {"id": new_id, "name": name, "grade": int(grade), "section": section}
             students.append(student)
 
         session.clear()
