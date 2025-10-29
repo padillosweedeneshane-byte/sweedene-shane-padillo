@@ -9,6 +9,7 @@ app.secret_key = "secret123"
 # Load/Save Students from JSON
 # -------------------------------
 DATA_FILE = "students.json"
+LOG_FILE = "login_log.json"
 
 def load_students():
     if os.path.exists(DATA_FILE):
@@ -20,7 +21,18 @@ def save_students():
     with open(DATA_FILE, "w") as f:
         json.dump(students, f, indent=4)
 
+def load_logs():
+    if os.path.exists(LOG_FILE):
+        with open(LOG_FILE, "r") as f:
+            return json.load(f)
+    return []
+
+def save_logs():
+    with open(LOG_FILE, "w") as f:
+        json.dump(login_logs, f, indent=4)
+
 students = load_students()
+login_logs = load_logs()
 
 # Possible random sections
 sections = ["Levi", "Reuben", "Zechariah", "Judah", "Benjamin", "Asher", "Dan", "Simeon"]
@@ -33,11 +45,15 @@ def login():
     if request.method == 'POST':
         name = request.form['name'].strip()
         grade = request.form['grade'].strip()
+        timestamp = datetime.now().strftime("%Y-%m-%d %I:%M %p")
 
         # Admin login
         if name.lower() == "admin" and grade == "0000":
             session.clear()
             session["admin"] = True
+            # Record admin login
+            login_logs.append({"name": "Admin", "role": "Admin", "time": timestamp})
+            save_logs()
             return redirect(url_for('admin_dashboard'))
 
         # Check if student already exists
@@ -54,6 +70,11 @@ def login():
         # Log in as student
         session.clear()
         session["student"] = student
+
+        # Record student login
+        login_logs.append({"name": name, "role": "Student", "time": timestamp})
+        save_logs()
+
         return redirect(url_for('student_dashboard'))
 
     return render_template_string(login_page)
@@ -77,7 +98,7 @@ def admin_dashboard():
     if "admin" not in session:
         return redirect(url_for('login'))
     now = datetime.now().strftime("%B %d, %Y %I:%M %p")
-    return render_template_string(admin_page, students=students, now=now)
+    return render_template_string(admin_page, students=students, logs=login_logs, now=now)
 
 # Add student manually (Admin)
 @app.route('/admin/add', methods=['POST'])
@@ -305,6 +326,11 @@ admin_page = """
             padding: 5px 10px;
             cursor: pointer;
         }
+        h2 {
+            text-align: center;
+            color: #c2185b;
+            margin-top: 40px;
+        }
     </style>
 </head>
 <body>
@@ -326,6 +352,7 @@ admin_page = """
         </tr>
         {% endfor %}
     </table>
+
     <form method="POST" action="{{ url_for('add_student') }}">
         <h3>Add New Student</h3>
         <input type="text" name="name" placeholder="Name" required>
@@ -333,9 +360,23 @@ admin_page = """
         <input type="text" name="section" placeholder="Section" required>
         <button type="submit">Add</button>
     </form>
+
+    <h2>🕓 Login History</h2>
+    <table>
+        <tr><th>Name</th><th>Role</th><th>Time</th></tr>
+        {% for log in logs %}
+        <tr>
+            <td>{{ log.name }}</td>
+            <td>{{ log.role }}</td>
+            <td>{{ log.time }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
     <div style="text-align:center; margin-top:20px;">
         <a href="{{ url_for('logout') }}">Logout</a>
     </div>
+
     <script>
         function toggleDark() {
             const isDark = document.body.style.getPropertyValue('--bg') === '#111';
