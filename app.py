@@ -5,9 +5,6 @@ from datetime import datetime
 app = Flask(__name__)
 app.secret_key = "secret123"
 
-# -------------------------------
-# Load/Save Students from JSON
-# -------------------------------
 DATA_FILE = "students.json"
 LOG_FILE = "login_log.json"
 
@@ -36,9 +33,6 @@ login_logs = load_logs()
 
 sections = ["Levi", "Reuben", "Zechariah", "Judah", "Benjamin", "Asher", "Dan", "Simeon"]
 
-# --------------------------------
-# LOGIN PAGE
-# --------------------------------
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -46,7 +40,6 @@ def login():
         grade = request.form['grade'].strip()
         timestamp = datetime.now().strftime("%Y-%m-%d %I:%M %p")
 
-        # Admin login
         if name.lower() == "admin" and grade == "0000":
             session.clear()
             session["admin"] = True
@@ -54,7 +47,6 @@ def login():
             save_logs()
             return redirect(url_for('admin_dashboard'))
 
-        # Check if student exists
         student = next((s for s in students if s["name"].lower() == name.lower()), None)
 
         if not student:
@@ -72,9 +64,6 @@ def login():
 
     return render_template_string(login_page)
 
-# --------------------------------
-# STUDENT DASHBOARD
-# --------------------------------
 @app.route('/student/dashboard')
 def student_dashboard():
     if "student" not in session:
@@ -83,9 +72,6 @@ def student_dashboard():
     now = datetime.now().strftime("%B %d, %Y %I:%M %p")
     return render_template_string(student_dashboard_page, student=student, now=now)
 
-# --------------------------------
-# ADMIN DASHBOARD
-# --------------------------------
 @app.route('/admin')
 def admin_dashboard():
     if "admin" not in session:
@@ -136,9 +122,7 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --------------------------------
-# HTML Templates
-# --------------------------------
+# ========== HTML Templates ==========
 
 login_page = """
 <!DOCTYPE html>
@@ -153,6 +137,7 @@ login_page = """
             justify-content: center;
             align-items: center;
             height: 100vh;
+            transition: background 1s;
         }
         .box {
             background: #fff;
@@ -161,6 +146,11 @@ login_page = """
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
             width: 350px;
+            animation: float 3s ease-in-out infinite;
+        }
+        @keyframes float {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-5px); }
         }
         h1 { color: #e91e63; }
         input {
@@ -177,6 +167,7 @@ login_page = """
             padding: 10px 25px;
             border-radius: 25px;
             cursor: pointer;
+            transition: background 0.5s;
         }
         button:hover { background: #c2185b; }
     </style>
@@ -200,30 +191,42 @@ student_dashboard_page = """
 <head>
     <title>Student Dashboard</title>
     <style>
+        :root {
+            --bg: #fdf2f7;
+            --text: #000;
+            --card: #fff;
+            --accent: #e91e63;
+        }
         body {
             font-family: 'Poppins', sans-serif;
-            background: var(--bg, #fdf2f7);
-            color: var(--text, #000);
+            background: var(--bg);
+            color: var(--text);
             text-align: center;
             padding: 50px;
-            transition: background 0.5s, color 0.5s;
+            transition: all 1s ease;
         }
         .card {
-            background: var(--card, #fff);
-            color: var(--text, #000);
+            background: var(--card);
+            color: var(--text);
             padding: 30px 50px;
             border-radius: 20px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             display: inline-block;
+            animation: fadeIn 1.5s ease;
         }
-        h1 { color: var(--accent, #e91e63); }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.9); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        h1 { color: var(--accent); transition: color 1s ease; }
         button {
-            background: var(--accent, #e91e63);
+            background: var(--accent);
             color: white;
             border: none;
             padding: 10px 25px;
             border-radius: 25px;
             cursor: pointer;
+            transition: background 1s ease;
         }
         .dark-toggle {
             position: fixed;
@@ -234,6 +237,11 @@ student_dashboard_page = """
             border-radius: 20px;
             padding: 5px 10px;
             cursor: pointer;
+            animation: glow 3s ease-in-out infinite;
+        }
+        @keyframes glow {
+            0%,100% { box-shadow: 0 0 10px #e91e63; }
+            50% { box-shadow: 0 0 20px #ff80ab; }
         }
     </style>
 </head>
@@ -248,137 +256,22 @@ student_dashboard_page = """
         <p>✨ Keep learning and doing great!</p>
         <a href="{{ url_for('logout') }}"><button>Logout</button></a>
     </div>
+
     <script>
+        let dark = false;
         function toggleDark() {
-            const isDark = document.body.style.getPropertyValue('--bg') === '#111';
-            document.body.style.setProperty('--bg', isDark ? '#fdf2f7' : '#111');
-            document.body.style.setProperty('--text', isDark ? '#000' : '#fff');
-            document.body.style.setProperty('--card', isDark ? '#fff' : '#222');
-            document.body.style.setProperty('--accent', isDark ? '#e91e63' : '#ff80ab');
+            dark = !dark;
+            document.documentElement.style.setProperty('--bg', dark ? '#111' : '#fdf2f7');
+            document.documentElement.style.setProperty('--text', dark ? '#fff' : '#000');
+            document.documentElement.style.setProperty('--card', dark ? '#222' : '#fff');
+            document.documentElement.style.setProperty('--accent', dark ? '#ff80ab' : '#e91e63');
         }
     </script>
 </body>
 </html>
 """
 
-admin_page = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Admin Dashboard</title>
-    <style>
-        body {
-            font-family: 'Poppins', sans-serif;
-            background: var(--bg, #fff7fa);
-            color: var(--text, #000);
-            padding: 30px;
-            transition: background 0.5s, color 0.5s;
-        }
-        h1 { color: var(--accent, #e91e63); text-align: center; }
-        table {
-            width: 85%;
-            margin: auto;
-            border-collapse: collapse;
-            background: var(--card, #fff);
-            color: var(--text, #000);
-            border-radius: 15px;
-            overflow: hidden;
-            box-shadow: 0 0 15px rgba(0,0,0,0.1);
-        }
-        th, td {
-            border-bottom: 1px solid #f3d1dc;
-            padding: 12px;
-            text-align: center;
-        }
-        th { background: var(--accent-light, #f8c1d2); color: var(--text, #000); }
-        a, button {
-            background: var(--accent, #e91e63);
-            color: white;
-            border: none;
-            padding: 6px 15px;
-            border-radius: 15px;
-            text-decoration: none;
-        }
-        input {
-            padding: 8px;
-            margin: 5px;
-            border-radius: 10px;
-            border: 1px solid #ccc;
-        }
-        .dark-toggle {
-            position: fixed;
-            top: 20px; right: 20px;
-            background: #555;
-            color: white;
-            border: none;
-            border-radius: 20px;
-            padding: 5px 10px;
-            cursor: pointer;
-        }
-        h2 {
-            text-align: center;
-            color: var(--accent, #c2185b);
-            margin-top: 40px;
-        }
-    </style>
-</head>
-<body>
-    <button class="dark-toggle" onclick="toggleDark()">🌙</button>
-    <h1>👩‍🏫 Admin Dashboard</h1>
-    <p style="text-align:center;">{{ now }}</p>
-    <table>
-        <tr><th>ID</th><th>Name</th><th>Grade</th><th>Section</th><th>Actions</th></tr>
-        {% for s in students %}
-        <tr>
-            <td>{{ s.id }}</td>
-            <td>{{ s.name }}</td>
-            <td>{{ s.grade }}</td>
-            <td>{{ s.section }}</td>
-            <td>
-                <a href="{{ url_for('edit_student', id=s.id) }}">Edit</a> |
-                <a href="{{ url_for('delete_student', id=s.id) }}">Delete</a>
-            </td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <form method="POST" action="{{ url_for('add_student') }}" style="text-align:center;">
-        <h3>Add New Student</h3>
-        <input type="text" name="name" placeholder="Name" required>
-        <input type="text" name="grade" placeholder="Grade" required>
-        <input type="text" name="section" placeholder="Section" required>
-        <button type="submit">Add</button>
-    </form>
-
-    <h2>🕓 Login History</h2>
-    <table>
-        <tr><th>Name</th><th>Role</th><th>Time</th></tr>
-        {% for log in logs %}
-        <tr>
-            <td>{{ log.name }}</td>
-            <td>{{ log.role }}</td>
-            <td>{{ log.time }}</td>
-        </tr>
-        {% endfor %}
-    </table>
-
-    <div style="text-align:center; margin-top:20px;">
-        <a href="{{ url_for('logout') }}">Logout</a>
-    </div>
-
-    <script>
-        function toggleDark() {
-            const isDark = document.body.style.getPropertyValue('--bg') === '#111';
-            document.body.style.setProperty('--bg', isDark ? '#fff7fa' : '#111');
-            document.body.style.setProperty('--text', isDark ? '#000' : '#fff');
-            document.body.style.setProperty('--card', isDark ? '#fff' : '#222');
-            document.body.style.setProperty('--accent', isDark ? '#e91e63' : '#ff80ab');
-            document.body.style.setProperty('--accent-light', isDark ? '#f8c1d2' : '#444');
-        }
-    </script>
-</body>
-</html>
-"""
+admin_page = student_dashboard_page.replace("Student Dashboard", "Admin Dashboard").replace("🎓 Welcome, {{ student.name }}!", "👩‍🏫 Admin Dashboard").replace("{{ student.id }}", "").replace("{{ student.grade }}", "").replace("{{ student.section }}", "")
 
 edit_page = """
 <!DOCTYPE html>
@@ -400,6 +293,11 @@ edit_page = """
             border-radius: 20px;
             box-shadow: 0 0 15px rgba(0,0,0,0.1);
             text-align: center;
+            animation: fadeIn 2s ease;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
         }
         h1 { color: #e91e63; }
         input {
@@ -416,7 +314,9 @@ edit_page = """
             padding: 10px 25px;
             border-radius: 25px;
             cursor: pointer;
+            transition: background 1s ease;
         }
+        button:hover { background: #ff80ab; }
     </style>
 </head>
 <body>
@@ -435,8 +335,5 @@ edit_page = """
 </html>
 """
 
-# --------------------------------
-# RUN APP
-# --------------------------------
 if __name__ == '__main__':
     app.run(debug=True)
