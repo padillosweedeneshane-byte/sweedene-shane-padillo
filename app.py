@@ -70,23 +70,50 @@ login_page = """
             text-align: center;
         }
 
+        /* Highlighted and animated login button */
         button {
             background: linear-gradient(90deg, #ff0057, #ff6ec7);
             border: none;
             color: white;
-            padding: 12px 35px;
-            border-radius: 25px;
+            padding: 12px 40px;
+            border-radius: 30px;
             cursor: pointer;
             font-weight: bold;
-            transition: 0.3s;
-            animation: colorShift 3s infinite alternate;
+            font-size: 15px;
+            transition: all 0.3s ease;
+            animation: colorShift 3s infinite alternate, glowPulse 1.5s ease-in-out infinite alternate;
             margin-top: 15px;
+            box-shadow: 0 0 15px rgba(255, 0, 100, 0.5);
+        }
+
+        @keyframes glowPulse {
+            from { box-shadow: 0 0 10px rgba(255, 0, 87, 0.5); }
+            to { box-shadow: 0 0 25px rgba(255, 110, 200, 0.8); }
         }
 
         button:hover {
-            transform: scale(1.07);
+            transform: scale(1.08);
         }
 
+        /* Recommendation box */
+        .recommendation {
+            margin-top: 25px;
+            padding: 15px;
+            border-radius: 10px;
+            background: #fff0f5;
+            font-size: 14px;
+            color: #444;
+            line-height: 1.5;
+            animation: fadeIn 1.2s ease;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+        }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(10px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        /* Dark mode styling */
         .dark-mode {
             background: linear-gradient(-45deg, #1a1a1a, #2b2b2b, #1a1a1a, #2b2b2b);
             color: white;
@@ -100,11 +127,12 @@ login_page = """
         .dark-mode input {
             background: #444;
             color: white;
-            border: 1px solid #777;
+            border: 1px solid #666;
         }
 
-        .dark-mode button {
-            color: white;
+        .dark-mode .recommendation {
+            background: #3b3b3b;
+            color: #ddd;
         }
 
         .theme-toggle {
@@ -131,6 +159,11 @@ login_page = """
             <input type="text" name="grade" placeholder="Grade (or 0000 for Admin)" required><br>
             <button type="submit">Login</button>
         </form>
+
+        <div class="recommendation">
+            🌟 <b>Study Tip:</b> Stay consistent! Even 30 minutes of focused review a day can make a huge difference.  
+            💡 <i>Admins</i> can log in using grade <b>0000</b>.
+        </div>
     </div>
 
     <script>
@@ -210,9 +243,9 @@ student_page = """
         <p>Section: {{ student.section }}</p>
         <div class="recommendation">
             {% if student.grade >= 10 %}
-                <b>Recommendation:</b> Great job! Prepare for your senior high transition. Review key topics and explore your future strand choices.
+                <b>Recommendation:</b> Prepare for your senior high! Start exploring possible tracks that suit your interests.
             {% else %}
-                <b>Recommendation:</b> Keep up the hard work! Focus on building strong fundamentals in Math and English.
+                <b>Recommendation:</b> Keep learning! Focus on your study habits and time management for better performance.
             {% endif %}
         </div>
         <a href="/">Logout</a>
